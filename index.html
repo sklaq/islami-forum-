@@ -861,9 +861,119 @@
             }
         };
 
-        // Loglama sistemi
+        // Loglama sistemi - GÜNCELLENDİ
         const LOG_FILE = 'islami_forum_logs.json';
-        const ADMIN_PASSWORD = 'MeteBatu%?100!'; // Bu şifreyi değiştirin!
+        const ADMIN_PASSWORD = 'MeteBatu%?100!';
+
+        // IP adresi almak için fonksiyon
+        async function getIPAddress() {
+            try {
+                // Önce ipify.org'dan IP almayı dene
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                try {
+                    // Alternatif servis
+                    const response = await fetch('https://api64.ipify.org?format=json');
+                    const data = await response.json();
+                    return data.ip;
+                } catch (error2) {
+                    console.error('IP adresi alınamadı:', error2);
+                    return 'IP_Alınamadı';
+                }
+            }
+        }
+
+        // Güncellenmiş loglama fonksiyonu
+        async function logVisit(action = 'Sayfa ziyareti', extraData = {}) {
+            try {
+                // Gerçek IP adresini al
+                const ip = await getIPAddress();
+                
+                // Ziyaretçi bilgilerini topla
+                const visitData = {
+                    ip: ip,
+                    userAgent: navigator.userAgent,
+                    screenResolution: `${screen.width}x${screen.height}`,
+                    language: navigator.language,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    page: window.location.href,
+                    referrer: document.referrer,
+                    action: action,
+                    timestamp: new Date().toISOString(),
+                    extraData: extraData,
+                    location: await getLocationFromIP(ip)
+                };
+                
+                // Mevcut logları al
+                let existingLogs = [];
+                try {
+                    const storedLogs = localStorage.getItem(LOG_FILE);
+                    if (storedLogs) {
+                        existingLogs = JSON.parse(storedLogs);
+                    }
+                } catch (e) {
+                    console.error('Loglar okunamadı:', e);
+                }
+                
+                // Yeni logu ekle
+                existingLogs.push(visitData);
+                
+                // Logları sakla (localStorage'da)
+                try {
+                    localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
+                } catch (e) {
+                    console.error('Loglar kaydedilemedi:', e);
+                }
+                
+                // Çok fazla log birikmesini önle (en fazla 1000 kayıt)
+                if (existingLogs.length > 1000) {
+                    existingLogs = existingLogs.slice(-500);
+                    localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
+                }
+                
+                return visitData;
+            } catch (error) {
+                console.error('Loglama hatası:', error);
+                // Hata durumunda basit log
+                const errorLog = {
+                    ip: 'Hata',
+                    action: action,
+                    timestamp: new Date().toISOString(),
+                    error: error.message
+                };
+                
+                let existingLogs = [];
+                try {
+                    const storedLogs = localStorage.getItem(LOG_FILE);
+                    if (storedLogs) {
+                        existingLogs = JSON.parse(storedLogs);
+                    }
+                } catch (e) {}
+                
+                existingLogs.push(errorLog);
+                localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
+            }
+        }
+
+        // IP'den konum bilgisi almak için fonksiyon
+        async function getLocationFromIP(ip) {
+            if (ip === 'IP_Alınamadı' || ip === 'Hata' || ip.includes('192.168.') || ip === '127.0.0.1') {
+                return 'Yerel Ağ';
+            }
+            
+            try {
+                const response = await fetch(`http://ip-api.com/json/${ip}`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    return `${data.country}, ${data.city}`;
+                }
+                return 'Bilinmeyen';
+            } catch (error) {
+                return 'Konum Bilinmiyor';
+            }
+        }
 
         // Kullanıcı bilgilerini saklamak için
         document.addEventListener('DOMContentLoaded', function() {
@@ -879,7 +989,7 @@
             const userAvatar = document.getElementById('userAvatar');
             
             // Sayfa yüklendiğinde otomatik log kaydı oluştur
-            logVisit('Sayfa ziyareti');
+            setTimeout(() => logVisit('Sayfa ziyareti'), 1000);
             
             // Sayfa yüklendiğinde kayıtlı kullanıcı bilgilerini kontrol et
             checkStoredUser();
@@ -1118,50 +1228,6 @@
             }
         });
 
-        // Loglama fonksiyonu
-        function logVisit(action, extraData = {}) {
-            // Ziyaretçi bilgilerini topla
-            const visitData = {
-                ip: 'Bilgi toplanıyor...', // Gerçek IP'yi almak için backend gerekli
-                userAgent: navigator.userAgent,
-                screenResolution: `${screen.width}x${screen.height}`,
-                language: navigator.language,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                page: window.location.href,
-                referrer: document.referrer,
-                action: action,
-                timestamp: new Date().toISOString(),
-                extraData: extraData
-            };
-            
-            // Mevcut logları al
-            let existingLogs = [];
-            try {
-                const storedLogs = localStorage.getItem(LOG_FILE);
-                if (storedLogs) {
-                    existingLogs = JSON.parse(storedLogs);
-                }
-            } catch (e) {
-                console.error('Loglar okunamadı:', e);
-            }
-            
-            // Yeni logu ekle
-            existingLogs.push(visitData);
-            
-            // Logları sakla (localStorage'da)
-            try {
-                localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
-            } catch (e) {
-                console.error('Loglar kaydedilemedi:', e);
-            }
-            
-            // Çok fazla log birikmesini önle (en fazla 1000 kayıt)
-            if (existingLogs.length > 1000) {
-                existingLogs = existingLogs.slice(-500);
-                localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
-            }
-        }
-
         // Admin panelini göster
         function showAdminLogin() {
             const password = prompt('Admin şifresini girin:');
@@ -1172,7 +1238,7 @@
             }
         }
 
-        // Admin panelini göster
+        // Güncellenmiş Admin panelini göster
         function showAdminPanel() {
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('forumContainer').style.display = 'none';
@@ -1194,6 +1260,9 @@
             // Logları ters sırada göster (en yeni üstte)
             logs.reverse();
             
+            // Benzersiz IP'leri say
+            const uniqueIPs = new Set(logs.map(log => log.ip));
+            
             const adminContainer = document.getElementById('adminContainer');
             adminContainer.innerHTML = `
                 <button class="btn btn-back">← Foruma Dön</button>
@@ -1201,26 +1270,28 @@
                 <div style="margin: 20px 0; padding: 15px; background: #e8f5e9; border-radius: 10px;">
                     <h3>📈 İstatistikler</h3>
                     <p><strong>Toplam Ziyaret:</strong> ${logs.length}</p>
+                    <p><strong>Benzersiz IP Sayısı:</strong> ${uniqueIPs.size}</p>
                     <p><strong>Son Ziyaret:</strong> ${logs[0] ? new Date(logs[0].timestamp).toLocaleString('tr-TR') : 'Veri yok'}</p>
-                    <button class="btn" onclick="clearLogs()" style="background: #d32f2f; margin-top: 10px;">Logları Temizle</button>
+                    <button class="btn" onclick="clearLogs()" style="background: #d32f2f; margin-top: 10px; margin-right: 10px;">Logları Temizle</button>
+                    <button class="btn" onclick="exportLogs()" style="background: #1976d2; margin-top: 10px;">Logları İndir</button>
                 </div>
                 <table>
                     <tr>
-                        <th>IP</th>
+                        <th>IP Adresi</th>
                         <th>Zaman</th>
                         <th>Sayfa/Eylem</th>
+                        <th>Konum</th>
                         <th>Tarayıcı</th>
                         <th>Ekran</th>
-                        <th>Dil</th>
                     </tr>
                     ${logs.map(log => `
                         <tr>
-                            <td>${log.ip}</td>
+                            <td><strong>${log.ip}</strong></td>
                             <td>${new Date(log.timestamp).toLocaleString('tr-TR')}</td>
                             <td>${log.action}</td>
+                            <td>${log.location || 'Bilinmiyor'}</td>
                             <td title="${log.userAgent}">${getBrowserName(log.userAgent)}</td>
                             <td>${log.screenResolution}</td>
-                            <td>${log.language}</td>
                         </tr>
                     `).join('')}
                 </table>
@@ -1229,6 +1300,7 @@
 
         // Tarayıcı adını al
         function getBrowserName(userAgent) {
+            if (!userAgent) return 'Bilinmiyor';
             if (userAgent.includes('Chrome')) return 'Chrome';
             if (userAgent.includes('Firefox')) return 'Firefox';
             if (userAgent.includes('Safari')) return 'Safari';
@@ -1242,6 +1314,30 @@
                 localStorage.removeItem(LOG_FILE);
                 alert('Loglar temizlendi!');
                 showAdminPanel();
+            }
+        }
+
+        // Logları indir
+        function exportLogs() {
+            try {
+                const storedLogs = localStorage.getItem(LOG_FILE);
+                if (!storedLogs) {
+                    alert('İndirilecek log bulunamadı!');
+                    return;
+                }
+                
+                const logs = JSON.parse(storedLogs);
+                const dataStr = JSON.stringify(logs, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = 'islami_forum_logs.json';
+                link.click();
+                
+                alert('Loglar başarıyla indirildi!');
+            } catch (error) {
+                alert('Loglar indirilirken hata oluştu: ' + error.message);
             }
         }
     </script>
