@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İslami Forum - İlim ve Hikmet Kapısı</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        :root {
+            --light-green: #e8f5e9;
+            --medium-green: #4caf50;
+            --dark-green: #2e7d32;
+            --darker-green: #1b5e20;
+            --gold: #ffd700;
+            --text-dark: #333;
+            --text-light: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--light-green);
+            color: var(--text-dark);
+            transition: background-color 0.5s ease;
+        }
+
+        body.logged-in {
+            background-color: var(--dark-green);
+        }
+
+        .arabic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            z-index: -1;
+            font-family: 'Noto Naskh Arabic', serif;
+            font-size: 120px;
+            color: var(--darker-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .arabic-bg span {
+            margin: 20px;
+            transform: rotate(-5deg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            background: linear-gradient(135deg, var(--medium-green), var(--darker-green));
+            color: var(--text-light);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: "ﷲ";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            opacity: 0.2;
+        }
+
+        header h1 {
+            font-family: 'Amiri', serif;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .login-container, .forum-container, .section-container, .topic-container, .admin-container {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-container, .topic-container, .admin-container {
+            display: none;
+        }
+
+        .forum-container {
+            display: none;
+        }
+
+        .admin-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .admin-container th, .admin-container td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .admin-container th {
+            background-color: var(--darker-green);
+            color: white;
+        }
+
+        .admin-container tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        h2 {
+            font-family: 'Amiri', serif;
+            color: var(--darker-green);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 2rem;
+            border-bottom: 2px solid var(--gold);
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--darker-green);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--medium-green);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+            outline: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--medium-green), var(--darker-green));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-back {
+            background: transparent;
+            color: var(--darker-green);
+            border: 2px solid var(--darker-green);
+            margin-bottom: 20px;
+            width: auto;
+            display: inline-block;
+        }
+
+        .btn-back:hover {
+            background-color: var(--darker-green);
+            color: white;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            background-color: var(--medium-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .logout-btn, .admin-btn {
+            background: transparent;
+            color: var(--darker-green);
+            border: 2px solid var(--darker-green);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .logout-btn:hover, .admin-btn:hover {
+            background-color: var(--darker-green);
+            color: white;
+        }
+
+        .forum-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            border-left: 5px solid var(--medium-green);
+            cursor: pointer;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h3 {
+            color: var(--darker-green);
+            margin-bottom: 10px;
+            font-family: 'Amiri', serif;
+            font-size: 1.5rem;
+        }
+
+        .section p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .section-stats {
+            display: flex;
+            justify-content: space-between;
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        .topics-list {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .topic {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid var(--medium-green);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .topic:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .topic-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #777;
+        }
+
+        .topic-title {
+            font-weight: 600;
+            color: var(--darker-green);
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+
+        .topic-excerpt {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .topic-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .topic-content {
+            margin-top: 20px;
+            line-height: 1.7;
+        }
+
+        .topic-content h3 {
+            color: var(--darker-green);
+            margin: 20px 0 10px;
+            font-family: 'Amiri', serif;
+        }
+
+        .topic-content p {
+            margin-bottom: 15px;
+        }
+
+        .topic-content ul, .topic-content ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .topic-content li {
+            margin-bottom: 5px;
+        }
+
+        .topic-content blockquote {
+            border-left: 4px solid var(--medium-green);
+            padding-left: 15px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #555;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .page-btn {
+            padding: 8px 15px;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-btn.active {
+            background-color: var(--medium-green);
+            color: white;
+        }
+
+        .page-btn:hover:not(.active) {
+            background-color: #e0e0e0;
+        }
+
+        .map-container {
+            margin-top: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #mosque-map {
+            height: 400px;
+            width: 100%;
+        }
+
+        .recent-posts {
+            margin-top: 30px;
+        }
+
+        .post {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--medium-green);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #777;
+        }
+
+        .post-title {
+            font-weight: 600;
+            color: var(--darker-green);
+            margin-bottom: 5px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 0;
+            color: white;
+            margin-top: 30px;
+            background: linear-gradient(135deg, var(--medium-green), var(--darker-green));
+            border-radius: 15px;
+        }
+
+        .islamic-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M50,10 C65,10 75,25 75,40 C75,55 65,70 50,70 C35,70 25,55 25,40 C25,25 35,10 50,10 Z" fill="none" stroke="%232e7d32" stroke-width="2" opacity="0.1"/><path d="M30,30 L70,30 L70,70 L30,70 Z" fill="none" stroke="%232e7d32" stroke-width="2" opacity="0.1"/></svg>');
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .admin-login {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 400px;
+            margin: 50px auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .admin-login input {
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .forum-sections {
+                grid-template-columns: 1fr;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .topic-header {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .admin-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="arabic-bg">
+        <span>ﷲ</span>
+        <span>محمد</span>
+        <span>الإسلام</span>
+        <span>القرآن</span>
+    </div>
+    
+    <div class="islamic-pattern"></div>
+
+    <div class="container">
+        <header>
+            <h1>İslami Forum</h1>
+            <p>İlim, hikmet ve kardeşlik buluşması - İslami konularda bilgi paylaşım platformu</p>
+        </header>
+
+        <div class="login-container" id="loginContainer">
+            <h2>Foruma Giriş Yapın</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Kullanıcı Adı</label>
+                    <input type="text" id="username" placeholder="Kullanıcı adınızı girin" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <input type="password" id="password" placeholder="Şifrenizi girin" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profession">Mesleğiniz</label>
+                    <select id="profession" required>
+                        <option value="">Mesleğinizi seçin</option>
+                        <option value="Öğrenci">Öğrenci</option>
+                        <option value="Öğretmen">Öğretmen</option>
+                        <option value="Mühendis">Mühendis</option>
+                        <option value="Doktor">Doktor</option>
+                        <option value="İş Adamı/Kadını">İş Adamı/Kadını</option>
+                        <option value="Memur">Memur</option>
+                        <option value="Serbest Meslek">Serbest Meslek</option>
+                        <option value="Emekli">Emekli</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn">Foruma Gir</button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="showAdminLogin()" style="background: #795548;">Admin Paneli</button>
+            </div>
+        </div>
+
+        <div class="forum-container" id="forumContainer">
+            <div class="user-info">
+                <div class="user-details">
+                    <div class="avatar" id="userAvatar">İ</div>
+                    <div>
+                        <h3 id="welcomeMessage">Hoş geldiniz, Kullanıcı!</h3>
+                        <p id="userProfession">Meslek: </p>
+                    </div>
+                </div>
+                <div>
+                    <button class="admin-btn" onclick="showAdminLogin()">Admin</button>
+                    <button class="logout-btn" id="logoutBtn">Çıkış Yap</button>
+                </div>
+            </div>
+
+            <h2>Forum Bölümleri</h2>
+            <div class="forum-sections">
+                <div class="section" data-section="kuran">
+                    <h3>Kuran-ı Kerim</h3>
+                    <p>Kuran tefsiri, ayet mealleri ve anlamları üzerine tartışmalar</p>
+                    <div class="section-stats">
+                        <span>325 Konu</span>
+                        <span>1.2K Mesaj</span>
+                    </div>
+                </div>
+                
+                <div class="section" data-section="hadis">
+                    <h3>Hadis-i Şerifler</h3>
+                    <p>Peygamberimizin sünneti ve hadisleri üzerine sohbetler</p>
+                    <div class="section-stats">
+                        <span>187 Konu</span>
+                        <span>845 Mesaj</span>
+                    </div>
+                </div>
+                
+                <div class="section" data-section="fikih">
+                    <h3>Fıkıh ve İbadetler</h3>
+                    <p>İslam hukuku, namaz, oruç, zekat ve hac konuları</p>
+                    <div class="section-stats">
+                        <span>412 Konu</span>
+                        <span>1.5K Mesaj</span>
+                    </div>
+                </div>
+                
+                <div class="section" data-section="akaid">
+                    <h3>Akaid ve İtikad</h3>
+                    <p>İman esasları, kelam ilmi ve itikadi meseleler</p>
+                    <div class="section-stats">
+                        <span>156 Konu</span>
+                        <span>672 Mesaj</span>
+                    </div>
+                </div>
+                
+                <div class="section" data-section="tasavvuf">
+                    <h3>Tasavvuf ve Ahlak</h3>
+                    <p>Maneviyat, zühd, takva ve güzel ahlak konuları</p>
+                    <div class="section-stats">
+                        <span>231 Konu</span>
+                        <span>923 Mesaj</span>
+                    </div>
+                </div>
+                
+                <div class="section" data-section="tarih">
+                    <h3>İslam Tarihi</h3>
+                    <p>Asr-ı Saadet, halifeler dönemi ve İslam medeniyeti</p>
+                    <div class="section-stats">
+                        <span>198 Konu</span>
+                        <span>754 Mesaj</span>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Yakınınızdaki Camiler</h2>
+            <div class="map-container">
+                <div id="mosque-map"></div>
+            </div>
+
+            <div class="recent-posts">
+                <h2>Son Paylaşımlar</h2>
+                <div class="post">
+                    <div class="post-header">
+                        <span>Kuran-ı Kerim Bölümü</span>
+                        <span>2 saat önce</span>
+                    </div>
+                    <div class="post-title">Fatiha Suresi'nin tefsiri hakkında</div>
+                    <p>Fatiha suresinin "iyyake na'budu ve iyyake nestain" ayetinin derin manası üzerine bir sorum var...</p>
+                </div>
+                
+                <div class="post">
+                    <div class="post-header">
+                        <span>Fıkıh ve İbadetler Bölümü</span>
+                        <span>5 saat önce</span>
+                    </div>
+                    <div class="post-title">Seferi olanın orucu hakkında</div>
+                    <p>Yolculuk halinde olan bir mümin oruç tutmakla mükellef midir? Hanefi mezhebine göre detaylı bilgi...</p>
+                </div>
+                
+                <div class="post">
+                    <div class="post-header">
+                        <span>Tasavvuf ve Ahlak Bölümü</span>
+                        <span>1 gün önce</span>
+                    </div>
+                    <div class="post-title">Nefis terbiyesi yöntemleri</div>
+                    <p>Günümüz dünyasında nefsi terbiye etmek için neler yapabiliriz? Tecrübelerinizi paylaşır mısınız?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-container" id="sectionContainer">
+            <!-- İçerik JavaScript ile doldurulacak -->
+        </div>
+
+        <div class="topic-container" id="topicContainer">
+            <!-- İçerik JavaScript ile doldurulacak -->
+        </div>
+
+        <div class="admin-container" id="adminContainer">
+            <!-- İçerik JavaScript ile doldurulacak -->
+        </div>
+
+        <footer>
+            <p>İslami Forum © 2023 - Tüm hakları saklıdır</p>
+            <p>"Hiç bilenlerle bilmeyenler bir olur mu?" (Zümer Suresi, 9. Ayet)</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Forum verileri
+        const forumData = {
+            kuran: {
+                title: "Kuran-ı Kerim",
+                description: "Kuran tefsiri, ayet mealleri ve anlamları üzerine tartışmalar",
+                topics: [
+                    {
+                        id: 1,
+                        title: "Fatiha Suresi Tefsiri ve Derin Anlamları",
+                        author: "Ahmet Yılmaz",
+                        date: "2023-10-15",
+                        views: 1245,
+                        replies: 89,
+                        content: `
+                            <h3>Fatiha Suresi'nin Önemi</h3>
+                            <p>Fatiha Suresi, Kur'an-ı Kerim'in ilk suresidir ve "açılış" anlamına gelir. Namazın her rekatında okunması farz olan bu sure, İslam'ın temel prensiplerini özetler.</p>
+                            
+                            <h3>Ayetler ve Anlamları</h3>
+                            <p><strong>1. Bismillahirrahmanirrahim:</strong> Rahman ve Rahim olan Allah'ın adıyla. Bu ayet, her hayırlı işe Allah'ın adıyla başlamamız gerektiğini öğretir.</p>
+                            <p><strong>2. Elhamdulillahi rabbil alemin:</strong> Hamd, alemlerin Rabbi Allah'a mahsustur. Bu ayet, tüm övgülerin sadece Allah'a ait olduğunu ifade eder.</p>
+                            <p><strong>3. Errahmanirrahim:</strong> O, Rahman'dır, Rahim'dir. Rahman; dünyada tüm mahlukata merhamet eden, Rahim; ahirette sadece müminlere merhamet edendir.</p>
+                            <p><strong>4. Maliki yevmiddin:</strong> Din gününün malikidir. Allah, ahiret gününün tek hakimidir.</p>
+                            <p><strong>5. İyyake na'budu ve iyyake nestain:</strong> Yalnız sana ibadet eder ve yalnız senden yardım dileriz. Tevhid inancının özünü oluşturan bu ayet, ibadetin sadece Allah'a yapılması gerektiğini vurgular.</p>
+                            <p><strong>6. İhdinas sıratel mustakim:</strong> Bizi doğru yola ilet.</p>
+                            <p><strong>7. Sıratellezine en'amte aleyhim gayril mağdubi aleyhim ve leddallin:</strong> Kendilerine nimet verdiklerinin yoluna, gazaba uğrayanların ve sapkınların yoluna değil.</p>
+                            
+                            <h3>Tefsir Notları</h3>
+                            <p>İmam Gazali, Fatiha Suresi'ni "Kur'an'ın özü" olarak nitelendirir. Sure, insan-Allah ilişkisinin temel dinamiklerini özetler:</p>
+                            <ul>
+                                <li>Allah'ın birliği ve yüceliği</li>
+                                <li>İbadetin sadece Allah'a yapılması</li>
+                                <li>Allah'tan yardım isteme</li>
+                                <li>Doğru yola iletilme duası</li>
+                            </ul>
+                            
+                            <blockquote>
+                                "Fatiha Suresi, Kur'an'ın anasıdır." (Hadis-i Şerif)
+                            </blockquote>
+                        `
+                    },
+                    {
+                        id: 2,
+                        title: "Bakara Suresi 255. Ayet (Ayetel Kürsi) ve Faziletleri",
+                        author: "Mehmet Demir",
+                        date: "2023-10-12",
+                        views: 987,
+                        replies: 67,
+                        content: `
+                            <h3>Ayetel Kürsi'nin Önemi</h3>
+                            <p>Bakara Suresi'nin 255. ayeti olan Ayetel Kürsi, Kur'an-ı Kerim'in en büyük ayetidir ve birçok fazileti bulunmaktadır.</p>
+                            
+                            <h3>Ayetin Meali</h3>
+                            <p>"Allah'tan başka ilah yoktur. O, daima diridir (Hayy), bütün varlığın idaresini yürüten (Kayyum)dur. O'nu ne gaflet basar, ne de uyku. Göklerde ve yerde ne varsa hepsi O'nundur. O'nun izni olmadan huzurunda şefaat edecek olan kimdir? Onların önlerinde ve arkalarında ne varsa bilir. Onlar, O'nun dilediğinden başka ilminden hiçbir şey kavrayamazlar. O'nun kürsüsü gökleri ve yeri kaplamıştır. Onların korunması O'na ağır gelmez. O, yücedir, büyüktür."</p>
+                            
+                            <h3>Faziletleri</h3>
+                            <p>Peygamber Efendimiz (s.a.v) Ayetel Kürsi hakkında şöyle buyurmuştur:</p>
+                            <ul>
+                                <li>Her farz namazdan sonra okuyan kişi, cennete girene kadar ölümden başka bir engelle karşılaşmaz.</li>
+                                <li>Yatağa girdiğinde okuyan kişi, sabaha kadar Allah'ın koruması altında olur.</li>
+                                <li>Evden çıkarken okuyan kişi, 70 melek tarafından korunur.</li>
+                                <li>Şeytan, Ayetel Kürsi'yi okuyan bir evden uzak durur.</li>
+                            </ul>
+                            
+                            <h3>Tefsir Notları</h3>
+                            <p>Ayetel Kürsi, Allah'ın sıfatlarını en kapsamlı şekilde açıklayan ayetlerden biridir:</p>
+                            <ol>
+                                <li><strong>El-Hayy:</strong> Daima diri olan</li>
+                                <li><strong>El-Kayyum:</strong> Varlıkları ayakta tutan</li>
+                                <li><strong>El-Alim:</strong> Her şeyi bilen</li>
+                                <li><strong>El-Kahhar:</strong> Her şeye galip gelen</li>
+                            </ol>
+                        `
+                    }
+                ]
+            },
+            hadis: {
+                title: "Hadis-i Şerifler",
+                description: "Peygamberimizin sünneti ve hadisleri üzerine sohbetler",
+                topics: [
+                    {
+                        id: 1,
+                        title: "Peygamberimizin Güzel Ahlakı ve Örnek Davranışları",
+                        author: "Emine Yıldız",
+                        date: "2023-10-14",
+                        views: 945,
+                        replies: 76,
+                        content: `
+                            <h3>Peygamberimizin Ahlakı</h3>
+                            <p>Peygamber Efendimiz (s.a.v), "Ben güzel ahlakı tamamlamak için gönderildim" buyurmuştur. Onun ahlakı Kur'an ahlakıydı.</p>
+                            
+                            <h3>Örnek Davranışları</h3>
+                            <p>Peygamberimizin günlük hayattaki bazı örnek davranışları:</p>
+                            <ul>
+                                <li><strong>Yemek Adabı:</strong> Sağ eliyle yerdi, önünden yerdi, yemeği çok sıcak yemezdi.</li>
+                                <li><strong>Konuşma Adabı:</strong> Yavaş ve tane tane konuşurdu, gereksiz konuşmazdı.</li>
+                                <li><strong>Misafirperverlik:</strong> Misafirleri en iyi şekilde ağırlardı, onlara ikramda bulunurdu.</li>
+                                <li><strong>Çocuklara Şefkat:</strong> Çocukları çok sever, onlarla şakalaşırdı.</li>
+                                <li><strong>Hayvanlara Merhamet:</strong> Hayvanlara eziyet edilmesini yasaklardı.</li>
+                            </ul>
+                            
+                            <h3>Hadislerle Güzel Ahlak</h3>
+                            <p>Peygamberimizin güzel ahlakla ilgili hadisleri:</p>
+                            <blockquote>
+                                "Müminlerin imanca en olgunu, ahlakı en güzel olanıdır." (Tirmizi)
+                            </blockquote>
+                            <blockquote>
+                                "Sizler yeryüzündekilere merhamet edin ki, göktekiler de size merhamet etsin." (Tirmizi)
+                            </blockquote>
+                            <blockquote>
+                                "Güçlü mümin, zayıf müminden daha hayırlı ve Allah katında daha sevimlidir." (Müslim)
+                            </blockquote>
+                            
+                            <h3>Peygamberimizin Şemaili</h3>
+                            <p>Peygamberimizin fiziksel özellikleri ve günlük yaşamı:</p>
+                            <ol>
+                                <li>Orta boylu, buğday tenliydi</li>
+                                <li>Saçları kıvırcık değil, düzdü</li>
+                                <li>Gözleri siyah, kirpikleri uzundu</li>
+                                <li>Yüzü ay gibi parlardı</li>
+                                <li>Güzel kokuydu, miskten daha güzeldi</li>
+                                <li>Yürürken hafifçe öne eğilir, sağlam adımlarla yürürdü</li>
+                            </ol>
+                        `
+                    }
+                ]
+            },
+            fikih: {
+                title: "Fıkıh ve İbadetler",
+                description: "İslam hukuku, namaz, oruç, zekat ve hac konuları",
+                topics: [
+                    {
+                        id: 1,
+                        title: "Namazın Farzları, Sünnetleri ve İçindeki Dualar",
+                        author: "Hasan Korkmaz",
+                        date: "2023-10-13",
+                        views: 1123,
+                        replies: 87,
+                        content: `
+                            <h3>Namazın Farzları</h3>
+                            <p>Namazın farzları iki kısımdır: Dışındaki farzlar (şartlar) ve içindeki farzlar (rükünler).</p>
+                            
+                            <h4>Namazın Dışındaki Farzlar (Şartlar)</h4>
+                            <ol>
+                                <li><strong>Hadesten Taharet:</strong> Abdestsizlik, cünüplük gibi hükmi kirlilikten temizlenmek</li>
+                                <li><strong>Necasetten Taharet:</strong> Bedende, elbisede ve namaz kılınacak yerde maddi pislik bulunmamak</li>
+                                <li><strong>Setr-i Avret:</strong> Örtülmesi gereken yerleri örtmek (Erkeklerde göbek ile diz kapağı arası, kadınlarda el, yüz ve ayaklar hariç tüm vücut)</li>
+                                <li><strong>İstikbal-i Kıble:</strong> Kıbleye yönelmek</li>
+                                <li><strong>Vakit:</strong> Namazı vaktinde kılmak</li>
+                                <li><strong>Niyet:</strong> Hangi namazı kıldığını kalben bilmek</li>
+                            </ol>
+                            
+                            <h4>Namazın İçindeki Farzlar (Rükünler)</h4>
+                            <ol>
+                                <li><strong>İftitah Tekbiri:</strong> Namaza "Allahu Ekber" diyerek başlamak</li>
+                                <li><strong>Kıyam:</strong> Ayakta durmak</li>
+                                <li><strong>Kıraat:</strong> Kur'an okumak</li>
+                                <li><strong>Rükû:</strong> Eğilmek</li>
+                                <li><strong>Secde:</strong> Yere kapanmak</li>
+                                <li><strong>Kaide-i Ahire:</strong> Son oturuş</li>
+                            </ol>
+                            
+                            <h3>Namazın Sünnetleri</h3>
+                            <p>Namazın başlıca sünnetleri:</p>
+                            <ul>
+                                <li>Beş vakit namaz ve Cuma namazı için ezan ve kamet okumak</li>
+                                <li>İftitah tekbirinden sonra Sübhâneke okumak</li>
+                                <li>Eûzü besmele çekmek</li>
+                                <li>Fatiha'dan sonra "amin" demek</li>
+                                <li>Rükû ve secdede üçer kere "Sübhâne Rabbiye'l-Azîm" ve "Sübhâne Rabbiye'l-Â'lâ" demek</li>
+                                <li>Ettehıyyâtü'den sonra salavat okumak</li>
+                                <li>Selam verirken başı sağa ve sola çevirmek</li>
+                            </ul>
+                            
+                            <h3>Namaz İçinde Okunan Dualar</h3>
+                            <p>Namazda okunan başlıca dualar ve anlamları:</p>
+                            <ul>
+                                <li><strong>Sübhâneke:</strong> "Allah'ım! Seni her türlü noksan sıfatlardan tenzih ederim."</li>
+                                <li><strong>Fatiha Suresi:</strong> Kur'an'ın özü ve temel duası</li>
+                                <li><strong>Ettehıyyâtü:</strong> "Dil, beden ve mal ile yapılan bütün ibadetler Allah'a mahsustur."</li>
+                                <li><strong>Allahümme Salli ve Barik:</strong> Peygamberimize salavat duaları</li>
+                                <li><strong>Rabbena Âtina:</strong> "Rabbimiz! Bize dünyada iyilik, ahirette iyilik ver."</li>
+                                <li><strong>Kunut Duaları:</strong> Vitir namazında okunan özel dualar</li>
+                            </ul>
+                        `
+                    }
+                ]
+            }
+        };
+
+        // Loglama sistemi
+        const LOG_FILE = 'islami_forum_logs.json';
+        const ADMIN_PASSWORD = 'admin123'; // Bu şifreyi değiştirin!
+
+        // Kullanıcı bilgilerini saklamak için
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const loginContainer = document.getElementById('loginContainer');
+            const forumContainer = document.getElementById('forumContainer');
+            const sectionContainer = document.getElementById('sectionContainer');
+            const topicContainer = document.getElementById('topicContainer');
+            const adminContainer = document.getElementById('adminContainer');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const userProfession = document.getElementById('userProfession');
+            const userAvatar = document.getElementById('userAvatar');
+            
+            // Sayfa yüklendiğinde otomatik log kaydı oluştur
+            logVisit('Sayfa ziyareti');
+            
+            // Sayfa yüklendiğinde kayıtlı kullanıcı bilgilerini kontrol et
+            checkStoredUser();
+            
+            // Giriş formu işleme
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const profession = document.getElementById('profession').value;
+                
+                // Kullanıcı bilgilerini localStorage'a kaydet
+                const userData = {
+                    username: username,
+                    profession: profession,
+                    loginTime: new Date().toISOString()
+                };
+                
+                localStorage.setItem('islamicForumUser', JSON.stringify(userData));
+                
+                // Log kaydı oluştur
+                logVisit('Kullanıcı girişi', userData);
+                
+                // Foruma giriş yap
+                loginToForum(userData);
+            });
+            
+            // Çıkış butonu
+            logoutBtn.addEventListener('click', function() {
+                const userData = JSON.parse(localStorage.getItem('islamicForumUser') || '{}');
+                logVisit('Kullanıcı çıkışı', userData);
+                localStorage.removeItem('islamicForumUser');
+                location.reload();
+            });
+            
+            // Forum bölümlerine tıklama
+            document.querySelectorAll('.section').forEach(section => {
+                section.addEventListener('click', function() {
+                    const sectionKey = this.getAttribute('data-section');
+                    logVisit(`Bölüm ziyareti: ${sectionKey}`);
+                    showSection(sectionKey);
+                });
+            });
+            
+            // Geri butonları
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('btn-back')) {
+                    if (topicContainer.style.display === 'block') {
+                        // Konudan bölüme dön
+                        const sectionKey = e.target.getAttribute('data-section');
+                        showSection(sectionKey);
+                    } else if (adminContainer.style.display === 'block') {
+                        // Admin'den foruma dön
+                        showForum();
+                    } else {
+                        // Bölümden foruma dön
+                        showForum();
+                    }
+                }
+            });
+            
+            // Kayıtlı kullanıcıyı kontrol etme
+            function checkStoredUser() {
+                const storedUser = localStorage.getItem('islamicForumUser');
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    loginToForum(userData);
+                    
+                    // Form alanlarını doldur
+                    document.getElementById('username').value = userData.username;
+                    document.getElementById('profession').value = userData.profession;
+                }
+            }
+            
+            // Foruma giriş yapma
+            function loginToForum(userData) {
+                loginContainer.style.display = 'none';
+                forumContainer.style.display = 'block';
+                sectionContainer.style.display = 'none';
+                topicContainer.style.display = 'none';
+                adminContainer.style.display = 'none';
+                document.body.classList.add('logged-in');
+                
+                // Kullanıcı bilgilerini göster
+                welcomeMessage.textContent = `Hoş geldiniz, ${userData.username}!`;
+                userProfession.textContent = `Meslek: ${userData.profession}`;
+                userAvatar.textContent = userData.username.charAt(0).toUpperCase();
+                
+                // Haritayı başlat
+                initMap();
+            }
+            
+            // Forumu göster
+            function showForum() {
+                forumContainer.style.display = 'block';
+                sectionContainer.style.display = 'none';
+                topicContainer.style.display = 'none';
+                adminContainer.style.display = 'none';
+            }
+            
+            // Bölüm göster
+            function showSection(sectionKey) {
+                const sectionData = forumData[sectionKey];
+                if (!sectionData) return;
+                
+                forumContainer.style.display = 'none';
+                sectionContainer.style.display = 'block';
+                topicContainer.style.display = 'none';
+                adminContainer.style.display = 'none';
+                
+                // Bölüm başlığı
+                sectionContainer.innerHTML = `
+                    <button class="btn btn-back">← Foruma Dön</button>
+                    <h2>${sectionData.title}</h2>
+                    <p>${sectionData.description}</p>
+                    <div class="topics-list" id="topicsList"></div>
+                    <div class="pagination" id="pagination"></div>
+                `;
+                
+                // Konuları listele
+                displayTopics(sectionData.topics, sectionKey);
+            }
+            
+            // Konu göster
+            function showTopic(topic, sectionKey) {
+                logVisit(`Konu ziyareti: ${topic.title}`);
+                
+                forumContainer.style.display = 'none';
+                sectionContainer.style.display = 'none';
+                topicContainer.style.display = 'block';
+                adminContainer.style.display = 'none';
+                
+                topicContainer.innerHTML = `
+                    <button class="btn btn-back" data-section="${sectionKey}">← ${forumData[sectionKey].title} Bölümüne Dön</button>
+                    <h2>${topic.title}</h2>
+                    <div class="topic-header">
+                        <span>Yazar: ${topic.author}</span>
+                        <span>Tarih: ${topic.date}</span>
+                    </div>
+                    <div class="topic-stats">
+                        <span>${topic.views} Görüntüleme</span>
+                        <span>${topic.replies} Cevap</span>
+                    </div>
+                    <div class="topic-content">
+                        ${topic.content}
+                    </div>
+                `;
+            }
+            
+            // Konuları listele
+            function displayTopics(topics, sectionKey) {
+                const topicsList = document.getElementById('topicsList');
+                topicsList.innerHTML = '';
+                
+                topics.forEach(topic => {
+                    const topicElement = document.createElement('div');
+                    topicElement.className = 'topic';
+                    topicElement.innerHTML = `
+                        <div class="topic-header">
+                            <span>Yazar: ${topic.author}</span>
+                            <span>Tarih: ${topic.date}</span>
+                        </div>
+                        <div class="topic-title">${topic.title}</div>
+                        <div class="topic-stats">
+                            <span>${topic.views} Görüntüleme</span>
+                            <span>${topic.replies} Cevap</span>
+                        </div>
+                    `;
+                    
+                    topicElement.addEventListener('click', () => {
+                        showTopic(topic, sectionKey);
+                    });
+                    
+                    topicsList.appendChild(topicElement);
+                });
+            }
+            
+            // Harita fonksiyonu
+            function initMap() {
+                // Harita oluştur
+                const map = L.map('mosque-map').setView([41.0082, 28.9784], 12); // İstanbul merkez
+                
+                // OpenStreetMap katmanı ekle
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                
+                // Kullanıcının konumunu al
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        
+                        // Harita merkezini kullanıcı konumuna taşı
+                        map.setView([userLat, userLng], 14);
+                        
+                        // Kullanıcı konumunu işaretle
+                        L.marker([userLat, userLng])
+                            .addTo(map)
+                            .bindPopup('Sizin konumunuz')
+                            .openPopup();
+                        
+                        // Yakındaki camileri işaretle (örnek veri)
+                        const mosques = [
+                            { name: 'Sultanahmet Camii', lat: userLat + 0.01, lng: userLng + 0.01 },
+                            { name: 'Süleymaniye Camii', lat: userLat - 0.005, lng: userLng + 0.015 },
+                            { name: 'Eyüp Sultan Camii', lat: userLat + 0.015, lng: userLng - 0.01 },
+                            { name: 'Fatih Camii', lat: userLat - 0.01, lng: userLng - 0.005 }
+                        ];
+                        
+                        mosques.forEach(mosque => {
+                            L.marker([mosque.lat, mosque.lng])
+                                .addTo(map)
+                                .bindPopup(mosque.name);
+                        });
+                    }, function(error) {
+                        console.error('Konum alınamadı:', error);
+                        // Varsayılan konumda camiler göster
+                        const defaultMosques = [
+                            { name: 'Sultanahmet Camii', lat: 41.0055, lng: 28.9770 },
+                            { name: 'Süleymaniye Camii', lat: 41.0160, lng: 28.9640 },
+                            { name: 'Eyüp Sultan Camii', lat: 41.0498, lng: 28.9317 },
+                            { name: 'Fatih Camii', lat: 41.0193, lng: 28.9498 }
+                        ];
+                        
+                        defaultMosques.forEach(mosque => {
+                            L.marker([mosque.lat, mosque.lng])
+                                .addTo(map)
+                                .bindPopup(mosque.name);
+                        });
+                    });
+                } else {
+                    alert('Tarayıcınız konum özelliğini desteklemiyor.');
+                }
+            }
+        });
+
+        // Loglama fonksiyonu
+        function logVisit(action, extraData = {}) {
+            // Ziyaretçi bilgilerini topla
+            const visitData = {
+                ip: 'Bilgi toplanıyor...', // Gerçek IP'yi almak için backend gerekli
+                userAgent: navigator.userAgent,
+                screenResolution: `${screen.width}x${screen.height}`,
+                language: navigator.language,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                page: window.location.href,
+                referrer: document.referrer,
+                action: action,
+                timestamp: new Date().toISOString(),
+                extraData: extraData
+            };
+            
+            // Mevcut logları al
+            let existingLogs = [];
+            try {
+                const storedLogs = localStorage.getItem(LOG_FILE);
+                if (storedLogs) {
+                    existingLogs = JSON.parse(storedLogs);
+                }
+            } catch (e) {
+                console.error('Loglar okunamadı:', e);
+            }
+            
+            // Yeni logu ekle
+            existingLogs.push(visitData);
+            
+            // Logları sakla (localStorage'da)
+            try {
+                localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
+            } catch (e) {
+                console.error('Loglar kaydedilemedi:', e);
+            }
+            
+            // Çok fazla log birikmesini önle (en fazla 1000 kayıt)
+            if (existingLogs.length > 1000) {
+                existingLogs = existingLogs.slice(-500);
+                localStorage.setItem(LOG_FILE, JSON.stringify(existingLogs));
+            }
+        }
+
+        // Admin panelini göster
+        function showAdminLogin() {
+            const password = prompt('Admin şifresini girin:');
+            if (password === ADMIN_PASSWORD) {
+                showAdminPanel();
+            } else if (password) {
+                alert('Hatalı şifre!');
+            }
+        }
+
+        // Admin panelini göster
+        function showAdminPanel() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('forumContainer').style.display = 'none';
+            document.getElementById('sectionContainer').style.display = 'none';
+            document.getElementById('topicContainer').style.display = 'none';
+            document.getElementById('adminContainer').style.display = 'block';
+            
+            // Logları al ve göster
+            let logs = [];
+            try {
+                const storedLogs = localStorage.getItem(LOG_FILE);
+                if (storedLogs) {
+                    logs = JSON.parse(storedLogs);
+                }
+            } catch (e) {
+                console.error('Loglar okunamadı:', e);
+            }
+            
+            // Logları ters sırada göster (en yeni üstte)
+            logs.reverse();
+            
+            const adminContainer = document.getElementById('adminContainer');
+            adminContainer.innerHTML = `
+                <button class="btn btn-back">← Foruma Dön</button>
+                <h2>📊 Ziyaretçi İzleme Paneli</h2>
+                <div style="margin: 20px 0; padding: 15px; background: #e8f5e9; border-radius: 10px;">
+                    <h3>📈 İstatistikler</h3>
+                    <p><strong>Toplam Ziyaret:</strong> ${logs.length}</p>
+                    <p><strong>Son Ziyaret:</strong> ${logs[0] ? new Date(logs[0].timestamp).toLocaleString('tr-TR') : 'Veri yok'}</p>
+                    <button class="btn" onclick="clearLogs()" style="background: #d32f2f; margin-top: 10px;">Logları Temizle</button>
+                </div>
+                <table>
+                    <tr>
+                        <th>IP</th>
+                        <th>Zaman</th>
+                        <th>Sayfa/Eylem</th>
+                        <th>Tarayıcı</th>
+                        <th>Ekran</th>
+                        <th>Dil</th>
+                    </tr>
+                    ${logs.map(log => `
+                        <tr>
+                            <td>${log.ip}</td>
+                            <td>${new Date(log.timestamp).toLocaleString('tr-TR')}</td>
+                            <td>${log.action}</td>
+                            <td title="${log.userAgent}">${getBrowserName(log.userAgent)}</td>
+                            <td>${log.screenResolution}</td>
+                            <td>${log.language}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+        }
+
+        // Tarayıcı adını al
+        function getBrowserName(userAgent) {
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Safari')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            return 'Diğer';
+        }
+
+        // Logları temizle
+        function clearLogs() {
+            if (confirm('Tüm logları temizlemek istediğinizden emin misiniz?')) {
+                localStorage.removeItem(LOG_FILE);
+                alert('Loglar temizlendi!');
+                showAdminPanel();
+            }
+        }
+    </script>
+</body>
+</html>
